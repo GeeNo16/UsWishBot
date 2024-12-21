@@ -1,5 +1,5 @@
 init_table = 'CREATE TABLE IF NOT EXISTS users (id auto_increment primary key, ' \
-             'name varchar(50), second_name varchar(50), pass varchar(50), ' \
+             'name varchar(50), second_name varchar(50), pass varchar(50),' \
              'username varchar(50), private boolean)'
 
 insert_name_secondname_telegramid = "INSERT INTO users (name, second_name, username) VALUES ('%s', '%s', '%s')"
@@ -21,3 +21,6 @@ checking_if_in_wishlist = "SELECT gift FROM '%s'"
 checking_if_private = "SELECT private FROM users WHERE username='%s'"
 
 catching_name = "SELECT name FROM users WHERE username='%s'"
+
+catching_password = "SELECT pass FROM users WHERE username='%s'"
+

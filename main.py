@@ -102,6 +102,13 @@ def callbacks(callback):
     if callback.data == 'no':
         bot.send_message(callback.message.chat.id, 'Жаль( заведите друзей')
 
+    if callback.data == 'yes2':
+        bot.send_message(callback.message.chat.id, 'Что ж, начнем сначала, введите имя пользователя')
+        bot.register_next_step_handler(callback.message, get_wishlist)
+
+    if callback.data == 'no2':
+        bot.send_message(callback.message.chat.id, 'Будте настойчивей когда спрашиваете пароль')
+
 
 def password_creating(message):
     flag = True
@@ -186,15 +193,57 @@ def get_wishlist(message):
         cur = conn.cursor()
 
         private_flag = cur.execute(sql.checking_if_private % message.text).fetchall()[0][0]
+
+        cur.close()
+        conn.close()
+
         if private_flag == 0:
             wishlist = []
             conn = sqlite3.connect('data.sqlite3')
             cur = conn.cursor()
 
-            for it in cur.execute(sql.checking_if_in_wishlist % message.chat.username).fetchall():
+            try:
+                for it in cur.execute(sql.checking_if_in_wishlist % message.text).fetchall():
+                    wishlist.append(it[0])
+
+                mess = 'Вот список пользователя ' + cur.execute(sql.catching_name % message.text).fetchall()[0][
+                    0] + '\n\n'
+
+                cur.close()
+                conn.close()
+
+                for item in wishlist:
+                    mess += item.capitalize() + '\n'
+
+                bot.send_message(message.chat.id, mess)
+
+            except sqlite3.OperationalError:
+                bot.send_message(message.chat.id, 'Пользователь еще не создал список')
+
+        elif private_flag == 1:
+            conn = sqlite3.connect('data.sqlite3')
+            cur = conn.cursor()
+
+            password = cur.execute(sql.catching_password % message.text).fetchall()[0][0]
+
+            cur.close()
+            conn.close()
+
+            bot.send_message(message.chat.id, t.friends_private % message.text)
+            bot.register_next_step_handler(message, check_pass, password, message.text)
+
+
+def check_pass(message, password, username):
+    if message.text == password:
+        wishlist = []
+        conn = sqlite3.connect('data.sqlite3')
+        cur = conn.cursor()
+
+        try:
+            for it in cur.execute(sql.checking_if_in_wishlist % username).fetchall():
                 wishlist.append(it[0])
 
-            mess = 'Вот список пользователя ' + cur.execute(sql.catching_name % message.text).fetchall()[0][0] + '\n\n'
+            mess = 'Вот список пользователя ' + cur.execute(sql.catching_name % username).fetchall()[0][0] + '\n\n'
 
             cur.close()
             conn.close()
@@ -203,6 +252,17 @@ def get_wishlist(message):
                 mess += item.capitalize() + '\n'
 
             bot.send_message(message.chat.id, mess)
+
+        except sqlite3.OperationalError:
+            bot.send_message(message.chat.id, 'Пользователь еще не создал список')
+
+    else:
+        markup = types.InlineKeyboardMarkup()
+        yes_button = types.InlineKeyboardButton('Да', callback_data='yes2')
+        no_button = types.InlineKeyboardButton('Нет', callback_data='no2')
+        markup.row(yes_button, no_button)
+        bot.send_message(message.chat.id, 'Пароль неверный или пользователь еще не создал его,'
+                                          ' хотите попробовать снова?', reply_markup=markup)
 
 
 bot.polling(none_stop=True)
