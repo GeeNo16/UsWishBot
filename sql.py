@@ -12,7 +12,7 @@ non_private_insert = "UPDATE users SET private=0 WHERE username='%s'"
 
 password_insert = "UPDATE users SET pass='%s' WHERE username='%s'"
 
-init_wishlist = "CREATE TABLE IF NOT EXISTS '%s' (id auto_increment primary key, gift varchar, link varchar)"
+init_wishlist = "CREATE TABLE IF NOT EXISTS '%s' (id auto_increment primary key, gift varchar, link varchar DEFAULT '')"
 
 wishlist_item_insert = "INSERT INTO '%s' (gift) VALUES ('%s')"
 
@@ -24,3 +24,10 @@ catching_name = "SELECT name FROM users WHERE username='%s'"
 
 catching_password = "SELECT pass FROM users WHERE username='%s'"
 
+adding_link = "UPDATE '%s' SET link='%s' WHERE gift='%s'"
+
+catching_link = "SELECT link FROM '%s' WHERE gift='%s'"
+
+checking_if_private_exists = "SELECT private FROM users WHERE username='%s'"
+
+delete_elements = "DELETE FROM '%s' WHERE gift='%s'"

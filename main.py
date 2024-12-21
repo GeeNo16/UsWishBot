@@ -25,27 +25,135 @@ def start(message):
     conn.close()
 
     markup = types.InlineKeyboardMarkup()
-    register_button = types.InlineKeyboardButton('Начать работу', callback_data='begin_work')
-    about_button = types.InlineKeyboardButton('О боте', callback_data='about')
-    get_list_button = types.InlineKeyboardButton('Узнать список друга', callback_data='get_list')
-    markup.row(register_button, about_button)
-    markup.row(get_list_button)
+    present_button = types.InlineKeyboardButton('Дарить', callback_data='present')
+    make_list_button = types.InlineKeyboardButton('Управлять своим списком', callback_data='make_list')
+    info_button = types.InlineKeyboardButton('О боте', callback_data='info')
+    markup.row(present_button)
+    markup.row(make_list_button)
+    markup.row(info_button)
 
     bot.send_message(message.chat.id, t.greeting_text, reply_markup=markup)
 
 
 @bot.callback_query_handler(func=lambda callback: True)
 def callbacks(callback):
-    if callback.data == 'get_list':
+    if callback.data == 'present':
         bot.send_message(callback.message.chat.id, t.enter_username)
         bot.register_next_step_handler(callback.message, get_wishlist)
 
-    if callback.data == 'begin_work':
+    if callback.data == 'make_list':
+        conn = sqlite3.connect('data.sqlite3')
+        cur = conn.cursor()
+
+        private_exists = cur.execute(sql.checking_if_private_exists % callback.message.chat.username).fetchall()
+        print(private_exists)
+
+        cur.close()
+        conn.close()
+
+        if private_exists[0][0] not in (0, 1):
+            markup = types.InlineKeyboardMarkup()
+            create_button = types.InlineKeyboardButton('Создать', callback_data='create_new')
+            exit_button = types.InlineKeyboardButton('Выход', callback_data='exit')
+            markup.row(create_button, exit_button)
+            bot.send_message(callback.message.chat.id, 'У вас еще нет списка\n\nХотите создать?', reply_markup=markup)
+
+        else:
+            markup = types.InlineKeyboardMarkup()
+            add_elements = types.InlineKeyboardButton('Добавить элементы', callback_data='add_elems')
+            delete_elems = types.InlineKeyboardButton('Удалить элементы', callback_data='delete_elems')
+            hang_link_button = types.InlineKeyboardButton('Прикрепить ссылку', callback_data='hang_link')
+            unhang_link_button = types.InlineKeyboardButton('Открепить ссылку', callback_data='unhang_link')
+            change_private_button = types.InlineKeyboardButton('Изменить уровень доступа',
+                                                               callback_data='change_access')
+            change_password_button = types.InlineKeyboardButton('Изменить пароль', callback_data='change_password')
+            get_list_button = types.InlineKeyboardButton('Посмотреть свой список', callback_data='get_list')
+            if private_exists[0][0] == 0:
+                markup.row(add_elements, delete_elems)
+                markup.row(hang_link_button, unhang_link_button)
+                markup.row(change_private_button)
+                markup.row(get_list_button)
+            else:
+                markup.row(add_elements, delete_elems)
+                markup.row(hang_link_button, unhang_link_button)
+                markup.row(change_private_button, change_password_button)
+                markup.row(get_list_button)
+            bot.send_message(callback.message.chat.id,
+                             'У вас уже есть список\n\nЧто бы вы хотели с ним сделать?', reply_markup=markup)
+
+    if callback.data == 'delete_elems':
+        wishlist = []
+        conn = sqlite3.connect('data.sqlite3')
+        cur = conn.cursor()
+
+        for it in cur.execute(sql.checking_if_in_wishlist % callback.message.chat.username).fetchall():
+            wishlist.append(it[0])
+
+        mess = 'Вот ваш список' + '\n'
+
+        for item in wishlist:
+            mess += "<a href='" + cur.execute(sql.catching_link %
+                                              (callback.message.chat.username, item)).fetchall()[0][0] \
+                    + "'>" + item.capitalize() + "</a>" + '\n'
+
+        cur.close()
+        conn.close()
+
+        bot.send_message(callback.message.chat.id, t.delete_elements % mess, parse_mode='html')
+
+        bot.register_next_step_handler(callback.message, rm_elements)
+
+    if callback.data == 'get_list':
+        wishlist = []
+        conn = sqlite3.connect('data.sqlite3')
+        cur = conn.cursor()
+
+        for it in cur.execute(sql.checking_if_in_wishlist % callback.message.chat.username).fetchall():
+            wishlist.append(it[0])
+
+        mess = 'Вот ваш список' + '\n\n'
+
+        for item in wishlist:
+            mess += "<a href='" + cur.execute(sql.catching_link %
+                                              (callback.message.chat.username, item)).fetchall()[0][0] \
+                    + "'>" + item.capitalize() + "</a>" + '\n'
+
+        cur.close()
+        conn.close()
+
+        bot.send_message(callback.message.chat.id, mess, parse_mode='html')
+
+    if callback.data == 'hang_link':
+        wishlist = []
+        conn = sqlite3.connect('data.sqlite3')
+        cur = conn.cursor()
+
+        for it in cur.execute(sql.checking_if_in_wishlist % callback.message.chat.username).fetchall():
+            wishlist.append(it[0])
+
+        mess = 'Вот ваш список' + '\n\n'
+
+        for item in wishlist:
+            mess += "<a href='" + cur.execute(sql.catching_link %
+                                              (callback.message.chat.username, item)).fetchall()[0][0] \
+                                                + "'>" + item.capitalize() + "</a>" + '\n'
+
+        cur.close()
+        conn.close()
+
+        bot.send_message(callback.message.chat.id, mess + '\nВведите к какому элементу вы хотите добавить ссылку',
+                         parse_mode='html')
+        bot.register_next_step_handler(callback.message, choosing_elem, wishlist)
+
+    if callback.data == 'create_new':
         markup = types.InlineKeyboardMarkup()
         private_button = types.InlineKeyboardButton('Сделать приватным', callback_data='make_private')
         non_private_button = types.InlineKeyboardButton('Сделать открытым', callback_data='make_opened')
         markup.row(private_button, non_private_button)
         bot.send_message(callback.message.chat.id, t.private_choosing_text, reply_markup=markup)
+
+    if callback.data == 'exit':
+        bot.delete_message(callback.message.chat.id, callback.message.message_id)
 
     if callback.data == 'make_private':
         conn = sqlite3.connect('data.sqlite3')
@@ -81,7 +189,7 @@ def callbacks(callback):
         bot.send_message(callback.message.chat.id, t.password_choosing_text)
         bot.register_next_step_handler(callback.message, password_creating)
 
-    if callback.data == 'create_wishlist':
+    if callback.data == 'create_wishlist' or callback.data == 'add_elems':
         bot.send_message(callback.message.chat.id, t.create_wishlist)
 
         conn = sqlite3.connect('data.sqlite3')
@@ -100,7 +208,8 @@ def callbacks(callback):
         bot.register_next_step_handler(callback.message, get_wishlist)
 
     if callback.data == 'no':
-        bot.send_message(callback.message.chat.id, 'Жаль( заведите друзей')
+        bot.delete_messages(callback.message.chat.id,
+                        [callback.message.message_id, callback.message.message_id - 1, callback.message.message_id - 2])
 
     if callback.data == 'yes2':
         bot.send_message(callback.message.chat.id, 'Что ж, начнем сначала, введите имя пользователя')
@@ -108,6 +217,50 @@ def callbacks(callback):
 
     if callback.data == 'no2':
         bot.send_message(callback.message.chat.id, 'Будте настойчивей когда спрашиваете пароль')
+
+
+def hang_link(message):
+    wishlist = []
+    conn = sqlite3.connect('data.sqlite3')
+    cur = conn.cursor()
+
+    for it in cur.execute(sql.checking_if_in_wishlist % message.chat.username).fetchall():
+        wishlist.append(it[0])
+
+    mess = 'Вот ваш список' + '\n\n'
+
+    for item in wishlist:
+        mess += "<a href='" + cur.execute(sql.catching_link % (message.chat.username, item)).fetchall()[0][0]\
+                + "'>" + item.capitalize() + "</a>" + '\n'
+
+    cur.close()
+    conn.close()
+
+    bot.send_message(message.chat.id, mess + '\nВведите к какому элементу вы хотите добавить ссылку', parse_mode='html')
+    bot.register_next_step_handler(message, choosing_elem, wishlist)
+
+
+def choosing_elem(message, wishlist):
+    if message.text.lower() in wishlist:
+        bot.send_message(message.chat.id, f'Выбранный элемент: {message.text.lower().capitalize()}\nВведите ссылку')
+        bot.register_next_step_handler(message, link_hanger, message.text.lower())
+
+    else:
+        bot.send_message(message.chat.id, 'Выбранного элемента нет в списке\nПопробуйте снова')
+        bot.register_next_step_handler(message, choosing_elem, wishlist)
+
+
+def link_hanger(message, elem):
+    conn = sqlite3.connect('data.sqlite3')
+    cur = conn.cursor()
+
+    cur.execute(sql.adding_link % (message.chat.username, message.text, elem))
+    conn.commit()
+
+    cur.close()
+    conn.close()
+
+    bot.send_message(message.chat.id, 'Готово')
 
 
 def password_creating(message):
@@ -163,10 +316,44 @@ def wishlist_creating(message):
         cur.close()
         conn.close()
 
+        bot.send_message(message.chat.id, 'Элемент добавлен')
         bot.register_next_step_handler(message, wishlist_creating)
 
     else:
         bot.send_message(message.chat.id, 'Вы закончили')
+
+
+def rm_elements(message):
+    wishlist = []
+    conn = sqlite3.connect('data.sqlite3')
+    cur = conn.cursor()
+
+    for it in cur.execute(sql.checking_if_in_wishlist % message.chat.username).fetchall():
+        wishlist.append(it[0])
+
+    cur.close()
+    conn.close()
+
+    if message.text.lower() in ('стоп', 'stop'):
+        bot.send_message(message.chat.id, 'Вы закончили')
+
+    elif message.text.lower() not in wishlist:
+        bot.send_message(message.chat.id, 'Этого элемента нет в списке, попробуйте другой')
+
+        bot.register_next_step_handler(message, rm_elements)
+
+    elif message.text.lower() not in ('стоп', 'stop'):
+        conn = sqlite3.connect('data.sqlite3')
+        cur = conn.cursor()
+
+        cur.execute(sql.delete_elements % (message.chat.username, message.text.lower()))
+        conn.commit()
+
+        cur.close()
+        conn.close()
+
+        bot.send_message(message.chat.id, 'Элемент удален')
+        bot.register_next_step_handler(message, rm_elements)
 
 
 def get_wishlist(message):
@@ -209,13 +396,14 @@ def get_wishlist(message):
                 mess = 'Вот список пользователя ' + cur.execute(sql.catching_name % message.text).fetchall()[0][
                     0] + '\n\n'
 
+                for item in wishlist:
+                    mess += "<a href='" + cur.execute(sql.catching_link % (message.text, item)).fetchall()[0][0]\
+                            + "'>" + item.capitalize() + "</a>" + '\n'
+
                 cur.close()
                 conn.close()
 
-                for item in wishlist:
-                    mess += item.capitalize() + '\n'
-
-                bot.send_message(message.chat.id, mess)
+                bot.send_message(message.chat.id, mess, parse_mode='html')
 
             except sqlite3.OperationalError:
                 bot.send_message(message.chat.id, 'Пользователь еще не создал список')
@@ -245,13 +433,14 @@ def check_pass(message, password, username):
 
             mess = 'Вот список пользователя ' + cur.execute(sql.catching_name % username).fetchall()[0][0] + '\n\n'
 
+            for item in wishlist:
+                mess += "<a href='" + cur.execute(sql.catching_link % (username, item)).fetchall()[0][0]\
+                        + "'>" + item.capitalize() + "</a>" + '\n'
+
             cur.close()
             conn.close()
 
-            for item in wishlist:
-                mess += item.capitalize() + '\n'
-
-            bot.send_message(message.chat.id, mess)
+            bot.send_message(message.chat.id, mess, parse_mode='html')
 
         except sqlite3.OperationalError:
             bot.send_message(message.chat.id, 'Пользователь еще не создал список')
