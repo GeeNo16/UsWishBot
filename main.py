@@ -81,6 +81,62 @@ def callbacks(callback):
             bot.send_message(callback.message.chat.id,
                              'У вас уже есть список\n\nЧто бы вы хотели с ним сделать?', reply_markup=markup)
 
+    if callback.data == 'change_access':
+        markup = types.InlineKeyboardMarkup()
+        private_button = types.InlineKeyboardButton('Приватным', callback_data='change_private')
+        public = types.InlineKeyboardButton('Публичным', callback_data='change_public')
+        markup.row(private_button, public)
+
+        bot.send_message(callback.message.chat.id, t.change_access, reply_markup=markup)
+
+    if callback.data == 'change_private':
+        conn = sqlite3.connect('data.sqlite3')
+        cur = conn.cursor()
+
+        cur.execute(sql.private_insert % callback.message.chat.username)
+        conn.commit()
+
+        cur.close()
+        conn.close()
+
+        bot.send_message(callback.message.chat.id, t.private_access)
+        bot.register_next_step_handler(callback.message, final_password_creating)
+
+    if callback.data == 'change_public':
+        conn = sqlite3.connect('data.sqlite3')
+        cur = conn.cursor()
+
+        cur.execute(sql.non_private_insert % callback.message.chat.username)
+        conn.commit()
+
+        cur.close()
+        conn.close()
+
+        bot.send_message(callback.message.chat.id, 'Отлично, ваш список теперь публичный')
+
+    if callback.data == 'unhang_link':
+        links = []
+
+        conn = sqlite3.connect('data.sqlite3')
+        cur = conn.cursor()
+
+        for it in cur.execute(sql.select_links % callback.message.chat.username).fetchall():
+            links.append(it[0])
+
+        mess = 'Вот элемсенты списка с ссылками' + '\n'
+
+        for item in links:
+            mess += "<a href='" + cur.execute(sql.catching_link %
+                                              (callback.message.chat.username, item)).fetchall()[0][0] \
+                    + "'>" + item.capitalize() + "</a>" + '\n'
+
+        cur.close()
+        conn.close()
+
+        bot.send_message(callback.message.chat.id, t.delete_elements % mess, parse_mode='html')
+
+        bot.register_next_step_handler(callback.message, rm_link)
+
     if callback.data == 'delete_elems':
         wishlist = []
         conn = sqlite3.connect('data.sqlite3')
@@ -290,6 +346,28 @@ def password_creating(message):
         bot.register_next_step_handler(message, password_creating)
 
 
+def final_password_creating(message):
+    flag = True
+    for elem in message.text:
+        if elem in t.alph:
+            flag = False
+
+    if flag and len(message.text) == 9 and message.text[4] == '-' and message.text.count('-') == 1:
+        conn = sqlite3.connect('data.sqlite3')
+        cur = conn.cursor()
+
+        cur.execute(sql.password_insert % (message.text, message.chat.username))
+        conn.commit()
+
+        cur.close()
+        conn.close()
+        bot.send_message(message.chat.id, 'Отлично, пароль создан')
+
+    else:
+        bot.reply_to(message, 'Вы ввели некорректный пароль, попробуйте еще раз')
+        bot.register_next_step_handler(message, final_password_creating)
+
+
 def wishlist_creating(message):
     wishlist = []
     conn = sqlite3.connect('data.sqlite3')
@@ -321,6 +399,40 @@ def wishlist_creating(message):
 
     else:
         bot.send_message(message.chat.id, 'Вы закончили')
+
+
+def rm_link(message):
+    links = []
+
+    conn = sqlite3.connect('data.sqlite3')
+    cur = conn.cursor()
+
+    for it in cur.execute(sql.select_links % message.chat.username).fetchall():
+        links.append(it[0])
+
+    cur.close()
+    conn.close()
+
+    if message.text.lower() in ('стоп', 'stop'):
+        bot.send_message(message.chat.id, 'Вы закончили')
+
+    elif message.text.lower() not in links:
+        bot.send_message(message.chat.id, 'Этого элемента нет в списке предложенных')
+
+        bot.register_next_step_handler(message, rm_link)
+
+    elif message.text.lower() not in ('стоп', 'stop'):
+        conn = sqlite3.connect('data.sqlite3')
+        cur = conn.cursor()
+
+        cur.execute(sql.delete_links % (message.chat.username, message.text.lower()))
+        conn.commit()
+
+        cur.close()
+        conn.close()
+
+        bot.send_message(message.chat.id, 'Ссылка удалена')
+        bot.register_next_step_handler(message, rm_link)
 
 
 def rm_elements(message):

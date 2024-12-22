@@ -31,3 +31,7 @@ catching_link = "SELECT link FROM '%s' WHERE gift='%s'"
 checking_if_private_exists = "SELECT private FROM users WHERE username='%s'"
 
 delete_elements = "DELETE FROM '%s' WHERE gift='%s'"
+
+select_links = "SELECT gift FROM '%s' WHERE link <>''"
+
+delete_links = "UPDATE '%s' SET link='' WHERE gift='%s'"
