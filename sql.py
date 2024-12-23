@@ -35,3 +35,5 @@ delete_elements = "DELETE FROM '%s' WHERE gift='%s'"
 select_links = "SELECT gift FROM '%s' WHERE link <>''"
 
 delete_links = "UPDATE '%s' SET link='' WHERE gift='%s'"
+
+select_pass = "SELECT pass FROM users WHERE username='%s'"
