@@ -11,21 +11,38 @@ bot = telebot.TeleBot('7613225662:AAH8CZOQBwZ6PWFLLyw2l3Pc7MHwL4uMNO8')
 def start(message):
     try:
         markup = types.InlineKeyboardMarkup()
-        start_button = types.InlineKeyboardButton('Начать работу', callback_data='start')
+        start_button = types.InlineKeyboardButton(t.buttons['begin'], callback_data='start')
         markup.row(start_button)
         bot.send_message(message.chat.id, t.greeting_text, reply_markup=markup)
     except Exception:
         markup = types.InlineKeyboardMarkup()
-        go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+        go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
         markup.row(go_back_button)
 
-        bot.send_message(message.chat.id, 'Произошла ошибка', reply_markup=markup)
+        bot.send_message(message.chat.id, t.buttons['error'], reply_markup=markup)
+
+
+@bot.message_handler()
+def all_messages(message):
+    try:
+        markup = types.InlineKeyboardMarkup()
+        go_back_button = types.InlineKeyboardButton(t.buttons['begin_work'], callback_data='start')
+        markup.row(go_back_button)
+
+        bot.send_message(message.chat.id, t.no_reply_message, reply_markup=markup)
+    except Exception:
+        markup = types.InlineKeyboardMarkup()
+        go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
+        markup.row(go_back_button)
+
+        bot.send_message(message.chat.id, t.buttons['error'], reply_markup=markup)
 
 
 @bot.callback_query_handler(func=lambda callback: True)
 def callbacks(callback):
     try:
         if callback.data == 'start':
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             conn = sqlite3.connect('data.sqlite3')
             cur = conn.cursor()
             cur.execute(sql.init_table)
@@ -43,9 +60,9 @@ def callbacks(callback):
             conn.close()
 
             markup = types.InlineKeyboardMarkup()
-            present_button = types.InlineKeyboardButton('Дарить', callback_data='present')
-            make_list_button = types.InlineKeyboardButton('Управлять своим списком', callback_data='make_list')
-            info_button = types.InlineKeyboardButton('О боте', callback_data='info')
+            present_button = types.InlineKeyboardButton(t.buttons['present'], callback_data='present')
+            make_list_button = types.InlineKeyboardButton(t.buttons['rule_list'], callback_data='make_list')
+            info_button = types.InlineKeyboardButton(t.buttons['about'], callback_data='info')
             markup.row(present_button)
             markup.row(make_list_button)
             markup.row(info_button)
@@ -53,10 +70,12 @@ def callbacks(callback):
             bot.send_message(callback.message.chat.id, t.choose_text, reply_markup=markup)
 
         if callback.data == 'present':
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             bot.send_message(callback.message.chat.id, t.enter_username)
             bot.register_next_step_handler(callback.message, get_wishlist)
 
         if callback.data == 'make_list':
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             conn = sqlite3.connect('data.sqlite3')
             cur = conn.cursor()
 
@@ -67,23 +86,23 @@ def callbacks(callback):
 
             if private_exists[0][0] not in (0, 1):
                 markup = types.InlineKeyboardMarkup()
-                create_button = types.InlineKeyboardButton('Создать', callback_data='create_new')
-                exit_button = types.InlineKeyboardButton('Выход', callback_data='exit')
+                create_button = types.InlineKeyboardButton(t.buttons['create'], callback_data='create_new')
+                exit_button = types.InlineKeyboardButton(t.buttons['exit'], callback_data='exit')
                 markup.row(create_button, exit_button)
-                bot.send_message(callback.message.chat.id,
-                                 'У вас еще нет списка\n\nХотите создать?', reply_markup=markup)
+                bot.send_message(callback.message.chat.id, t.you_dont_have_list, reply_markup=markup)
 
             else:
                 markup = types.InlineKeyboardMarkup()
-                add_elements = types.InlineKeyboardButton('Добавить элементы', callback_data='add_elems')
-                delete_elems = types.InlineKeyboardButton('Удалить элементы', callback_data='delete_elems')
-                hang_link_button = types.InlineKeyboardButton('Прикрепить ссылку', callback_data='hang_link')
-                unhang_link_button = types.InlineKeyboardButton('Открепить ссылку', callback_data='unhang_link')
-                change_private_button = types.InlineKeyboardButton('Изменить уровень доступа',
+                add_elements = types.InlineKeyboardButton(t.buttons['add_elems'], callback_data='add_elems')
+                delete_elems = types.InlineKeyboardButton(t.buttons['delete_elems'], callback_data='delete_elems')
+                hang_link_button = types.InlineKeyboardButton(t.buttons['hang_link'], callback_data='hang_link')
+                unhang_link_button = types.InlineKeyboardButton(t.buttons['unhang_link'], callback_data='unhang_link')
+                change_private_button = types.InlineKeyboardButton(t.buttons['change_access'],
                                                                    callback_data='change_access')
-                change_password_button = types.InlineKeyboardButton('Изменить пароль', callback_data='change_password')
-                get_list_button = types.InlineKeyboardButton('Посмотреть свой список', callback_data='get_list')
-                check_pass_button = types.InlineKeyboardButton('Посмотреть свой пароль', callback_data='print_pass')
+                change_password_button = types.InlineKeyboardButton(t.buttons['change_password'],
+                                                                    callback_data='change_password')
+                get_list_button = types.InlineKeyboardButton(t.buttons['get_list'], callback_data='get_list')
+                check_pass_button = types.InlineKeyboardButton(t.buttons['print_pass'], callback_data='print_pass')
                 if private_exists[0][0] == 0:
                     markup.row(add_elements, delete_elems)
                     markup.row(hang_link_button, unhang_link_button)
@@ -96,10 +115,10 @@ def callbacks(callback):
                     markup.row(check_pass_button)
                     markup.row(get_list_button)
 
-                bot.send_message(callback.message.chat.id,
-                                 'У вас уже есть список\n\nЧто бы вы хотели с ним сделать?', reply_markup=markup)
+                bot.send_message(callback.message.chat.id, t.you_already_have_list, reply_markup=markup)
 
         if callback.data == 'print_pass':
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             conn = sqlite3.connect('data.sqlite3')
             cur = conn.cursor()
 
@@ -109,24 +128,26 @@ def callbacks(callback):
             conn.close()
 
             markup = types.InlineKeyboardMarkup()
-            go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+            go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
             markup.row(go_back_button)
-            bot.send_message(callback.message.chat.id, f'Имя пользователя: {callback.message.chat.username}\n'
-                                                       f'Пароль: {password}', reply_markup=markup)
+            bot.send_message(callback.message.chat.id, t.print_pass_text % (callback.message.chat.username, password))
 
         if callback.data == 'change_password':
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             bot.send_message(callback.message.chat.id, t.change_password)
             bot.register_next_step_handler(callback.message, final_password_creating)
 
         if callback.data == 'change_access':
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             markup = types.InlineKeyboardMarkup()
-            private_button = types.InlineKeyboardButton('Приватным', callback_data='change_private')
-            public = types.InlineKeyboardButton('Публичным', callback_data='change_public')
+            private_button = types.InlineKeyboardButton(t.buttons['private'], callback_data='change_private')
+            public = types.InlineKeyboardButton(t.buttons['public'], callback_data='change_public')
             markup.row(private_button, public)
 
             bot.send_message(callback.message.chat.id, t.change_access, reply_markup=markup)
 
         if callback.data == 'change_private':
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             conn = sqlite3.connect('data.sqlite3')
             cur = conn.cursor()
 
@@ -140,6 +161,7 @@ def callbacks(callback):
             bot.register_next_step_handler(callback.message, final_password_creating)
 
         if callback.data == 'change_public':
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             conn = sqlite3.connect('data.sqlite3')
             cur = conn.cursor()
 
@@ -150,11 +172,12 @@ def callbacks(callback):
             conn.close()
 
             markup = types.InlineKeyboardMarkup()
-            go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+            go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
             markup.row(go_back_button)
             bot.send_message(callback.message.chat.id, 'Отлично, ваш список теперь публичный', reply_markup=markup)
 
         if callback.data == 'unhang_link':
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             links = []
 
             conn = sqlite3.connect('data.sqlite3')
@@ -164,7 +187,7 @@ def callbacks(callback):
                 links.append(it[0])
 
             if len(links) > 0:
-                mess = 'Вот элемсенты списка с ссылками' + '\n'
+                mess = t.mess_start_unhang + '\n\n'
 
                 for item in links:
                     mess += "<a href='" + cur.execute(sql.catching_link %
@@ -180,12 +203,13 @@ def callbacks(callback):
 
             else:
                 markup = types.InlineKeyboardMarkup()
-                go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+                go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
                 markup.row(go_back_button)
 
-                bot.send_message(callback.message.chat.id, 'Вы еще не прикрепили ни одной ссылки', reply_markup=markup)
+                bot.send_message(callback.message.chat.id, t.you_dont_have_list, reply_markup=markup)
 
         if callback.data == 'delete_elems':
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             wishlist = []
             conn = sqlite3.connect('data.sqlite3')
             cur = conn.cursor()
@@ -193,7 +217,7 @@ def callbacks(callback):
             for it in cur.execute(sql.checking_if_in_wishlist % callback.message.chat.username).fetchall():
                 wishlist.append(it[0])
 
-            mess = 'Вот ваш список' + '\n'
+            mess = t.your_list + '\n\n'
 
             for item in wishlist:
                 mess += "<a href='" + cur.execute(sql.catching_link %
@@ -208,6 +232,7 @@ def callbacks(callback):
             bot.register_next_step_handler(callback.message, rm_elements)
 
         if callback.data == 'get_list':
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             wishlist = []
             conn = sqlite3.connect('data.sqlite3')
             cur = conn.cursor()
@@ -215,8 +240,7 @@ def callbacks(callback):
             for it in cur.execute(sql.checking_if_in_wishlist % callback.message.chat.username).fetchall():
                 wishlist.append(it[0])
 
-            mess = 'Вот ваш список' + '\n\n'
-
+            mess = t.your_list + '\n\n'
             for item in wishlist:
                 mess += "<a href='" + cur.execute(sql.catching_link %
                                                   (callback.message.chat.username, item)).fetchall()[0][0] \
@@ -225,12 +249,19 @@ def callbacks(callback):
             cur.close()
             conn.close()
 
-            markup = types.InlineKeyboardMarkup()
-            go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
-            markup.row(go_back_button)
-            bot.send_message(callback.message.chat.id, mess, parse_mode='html', reply_markup=markup)
+            if len(wishlist) > 0:
+                markup = types.InlineKeyboardMarkup()
+                go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
+                markup.row(go_back_button)
+                bot.send_message(callback.message.chat.id, mess, parse_mode='html', reply_markup=markup)
+            else:
+                markup = types.InlineKeyboardMarkup()
+                go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
+                markup.row(go_back_button)
+                bot.send_message(callback.message.chat.id, t.buttons['empty'], reply_markup=markup)
 
         if callback.data == 'hang_link':
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             wishlist = []
             conn = sqlite3.connect('data.sqlite3')
             cur = conn.cursor()
@@ -238,7 +269,7 @@ def callbacks(callback):
             for it in cur.execute(sql.checking_if_in_wishlist % callback.message.chat.username).fetchall():
                 wishlist.append(it[0])
 
-            mess = 'Вот ваш список' + '\n\n'
+            mess = t.your_list + '\n\n'
 
             for item in wishlist:
                 mess += "<a href='" + cur.execute(sql.catching_link %
@@ -248,14 +279,14 @@ def callbacks(callback):
             cur.close()
             conn.close()
 
-            bot.send_message(callback.message.chat.id, mess + '\nВведите к какому элементу вы хотите добавить ссылку',
-                             parse_mode='html')
+            bot.send_message(callback.message.chat.id, mess + t.choose_link_elem, parse_mode='html')
             bot.register_next_step_handler(callback.message, choosing_elem, wishlist)
 
         if callback.data == 'create_new':
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             markup = types.InlineKeyboardMarkup()
-            private_button = types.InlineKeyboardButton('Сделать приватным', callback_data='make_private')
-            non_private_button = types.InlineKeyboardButton('Сделать открытым', callback_data='make_opened')
+            private_button = types.InlineKeyboardButton(t.buttons['make_private'], callback_data='make_private')
+            non_private_button = types.InlineKeyboardButton(t.buttons['make_public'], callback_data='make_opened')
             markup.row(private_button, non_private_button)
             bot.send_message(callback.message.chat.id, t.private_choosing_text, reply_markup=markup)
 
@@ -263,6 +294,7 @@ def callbacks(callback):
             bot.delete_message(callback.message.chat.id, callback.message.message_id)
 
         if callback.data == 'make_private':
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             conn = sqlite3.connect('data.sqlite3')
             cur = conn.cursor()
 
@@ -273,11 +305,13 @@ def callbacks(callback):
             conn.close()
 
             markup = types.InlineKeyboardMarkup()
-            create_password_button = types.InlineKeyboardButton('Создать пароль', callback_data='create_password')
+            create_password_button = types.InlineKeyboardButton(t.buttons['create_password'],
+                                                                callback_data='create_password')
             markup.row(create_password_button)
             bot.send_message(callback.message.chat.id, t.private_ready_text, reply_markup=markup)
 
         if callback.data == 'make_opened':
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             conn = sqlite3.connect('data.sqlite3')
             cur = conn.cursor()
 
@@ -288,15 +322,18 @@ def callbacks(callback):
             conn.close()
 
             markup = types.InlineKeyboardMarkup()
-            create_wishlist_button = types.InlineKeyboardButton('Создать список', callback_data='create_wishlist')
+            create_wishlist_button = types.InlineKeyboardButton(t.buttons['create_list'],
+                                                                callback_data='create_wishlist')
             markup.row(create_wishlist_button)
             bot.send_message(callback.message.chat.id, t.public_ready_text, reply_markup=markup)
 
         if callback.data == 'create_password':
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             bot.send_message(callback.message.chat.id, t.password_choosing_text)
             bot.register_next_step_handler(callback.message, password_creating)
 
         if callback.data == 'create_wishlist' or callback.data == 'add_elems':
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             bot.send_message(callback.message.chat.id, t.create_wishlist)
 
             conn = sqlite3.connect('data.sqlite3')
@@ -311,30 +348,33 @@ def callbacks(callback):
             bot.register_next_step_handler(callback.message, wishlist_creating)
 
         if callback.data == 'yes':
-            bot.send_message(callback.message.chat.id, 'Что ж, попробуйте еще раз')
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
+            bot.send_message(callback.message.chat.id, t.try_again)
             bot.register_next_step_handler(callback.message, get_wishlist)
 
         if callback.data == 'no':
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             bot.delete_messages(callback.message.chat.id,
                             [callback.message.message_id,
                              callback.message.message_id - 1, callback.message.message_id - 2])
 
         if callback.data == 'yes2':
-            bot.send_message(callback.message.chat.id, 'Что ж, начнем сначала, введите имя пользователя')
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
+            bot.send_message(callback.message.chat.id, t.try_again_with_username)
             bot.register_next_step_handler(callback.message, get_wishlist)
 
         if callback.data == 'no2':
+            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             markup = types.InlineKeyboardMarkup()
-            go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+            go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
             markup.row(go_back_button)
-            bot.send_message(callback.message.chat.id,
-                             'Будте настойчивей когда спрашиваете пароль', reply_markup=markup)
+            bot.send_message(callback.message.chat.id, t.no_after_pass, reply_markup=markup)
     except Exception:
         markup = types.InlineKeyboardMarkup()
-        go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+        go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
         markup.row(go_back_button)
 
-        bot.send_message(callback.message.chat.id, 'Произошла ошибка', reply_markup=markup)
+        bot.send_message(callback.message.chat.id, t.buttons['error'], reply_markup=markup)
 
 
 def hang_link(message):
@@ -346,7 +386,7 @@ def hang_link(message):
         for it in cur.execute(sql.checking_if_in_wishlist % message.chat.username).fetchall():
             wishlist.append(it[0])
 
-        mess = 'Вот ваш список' + '\n\n'
+        mess = t.your_list + '\n\n'
 
         for item in wishlist:
             mess += "<a href='" + cur.execute(sql.catching_link % (message.chat.username, item)).fetchall()[0][0]\
@@ -355,32 +395,31 @@ def hang_link(message):
         cur.close()
         conn.close()
 
-        bot.send_message(message.chat.id, mess +
-                         '\nВведите к какому элементу вы хотите добавить ссылку', parse_mode='html')
+        bot.send_message(message.chat.id, mess + t.choose_link_elem, parse_mode='html')
         bot.register_next_step_handler(message, choosing_elem, wishlist)
     except Exception:
         markup = types.InlineKeyboardMarkup()
-        go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+        go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
         markup.row(go_back_button)
 
-        bot.send_message(message.chat.id, 'Произошла ошибка', reply_markup=markup)
+        bot.send_message(message.chat.id, t.buttons['error'], reply_markup=markup)
 
 
 def choosing_elem(message, wishlist):
     try:
         if message.text.lower() in wishlist:
-            bot.send_message(message.chat.id, f'Выбранный элемент: {message.text.lower().capitalize()}\nВведите ссылку')
+            bot.send_message(message.chat.id, t.chosen_elem % message.text.lower().capitalize())
             bot.register_next_step_handler(message, link_hanger, message.text.lower())
 
         else:
-            bot.send_message(message.chat.id, 'Выбранного элемента нет в списке\nПопробуйте снова')
+            bot.send_message(message.chat.id, t.no_elem_in_list)
             bot.register_next_step_handler(message, choosing_elem, wishlist)
     except Exception:
         markup = types.InlineKeyboardMarkup()
-        go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+        go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
         markup.row(go_back_button)
 
-        bot.send_message(message.chat.id, 'Произошла ошибка', reply_markup=markup)
+        bot.send_message(message.chat.id, t.buttons['error'], reply_markup=markup)
 
 
 def link_hanger(message, elem):
@@ -395,15 +434,15 @@ def link_hanger(message, elem):
         conn.close()
 
         markup = types.InlineKeyboardMarkup()
-        go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+        go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
         markup.row(go_back_button)
-        bot.send_message(message.chat.id, 'Готово', reply_markup=markup)
+        bot.send_message(message.chat.id, t.ready, reply_markup=markup)
     except Exception:
         markup = types.InlineKeyboardMarkup()
-        go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+        go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
         markup.row(go_back_button)
 
-        bot.send_message(message.chat.id, 'Произошла ошибка', reply_markup=markup)
+        bot.send_message(message.chat.id, t.buttons['error'], reply_markup=markup)
 
 
 def password_creating(message):
@@ -424,20 +463,21 @@ def password_creating(message):
             conn.close()
 
             markup = types.InlineKeyboardMarkup()
-            create_wishlist_button = types.InlineKeyboardButton('Создать список', callback_data='create_wishlist')
+            create_wishlist_button = types.InlineKeyboardButton(t.buttons['create_list'],
+                                                                callback_data='create_wishlist')
             markup.row(create_wishlist_button)
 
             bot.send_message(message.chat.id, t.password_great, reply_markup=markup)
 
         else:
-            bot.reply_to(message, 'Вы ввели некорректный пароль, попробуйте еще раз')
+            bot.reply_to(message, t.incorrect_password)
             bot.register_next_step_handler(message, password_creating)
     except Exception:
         markup = types.InlineKeyboardMarkup()
-        go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+        go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
         markup.row(go_back_button)
 
-        bot.send_message(message.chat.id, 'Произошла ошибка', reply_markup=markup)
+        bot.send_message(message.chat.id, t.buttons['error'], reply_markup=markup)
 
 
 def final_password_creating(message):
@@ -458,19 +498,19 @@ def final_password_creating(message):
             conn.close()
 
             markup = types.InlineKeyboardMarkup()
-            go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+            go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
             markup.row(go_back_button)
-            bot.send_message(message.chat.id, 'Отлично, пароль создан', reply_markup=markup)
+            bot.send_message(message.chat.id, t.pass_created, reply_markup=markup)
 
         else:
-            bot.reply_to(message, 'Вы ввели некорректный пароль, попробуйте еще раз')
+            bot.reply_to(message, t.incorrect_password)
             bot.register_next_step_handler(message, final_password_creating)
     except Exception:
         markup = types.InlineKeyboardMarkup()
-        go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+        go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
         markup.row(go_back_button)
 
-        bot.send_message(message.chat.id, 'Произошла ошибка', reply_markup=markup)
+        bot.send_message(message.chat.id, t.buttons['error'], reply_markup=markup)
 
 
 def wishlist_creating(message):
@@ -486,7 +526,7 @@ def wishlist_creating(message):
         conn.close()
 
         if message.text.lower() in wishlist:
-            bot.send_message(message.chat.id, 'Этот элемент уже есть в списке, введите новый')
+            bot.send_message(message.chat.id, t.elem_in_list)
 
             bot.register_next_step_handler(message, wishlist_creating)
 
@@ -500,21 +540,21 @@ def wishlist_creating(message):
             cur.close()
             conn.close()
 
-            bot.send_message(message.chat.id, 'Элемент добавлен')
+            bot.send_message(message.chat.id, t.elem_added)
             bot.register_next_step_handler(message, wishlist_creating)
 
         else:
             markup = types.InlineKeyboardMarkup()
-            go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+            go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
             markup.row(go_back_button)
 
-            bot.send_message(message.chat.id, 'Вы закончили', reply_markup=markup)
+            bot.send_message(message.chat.id, t.you_finished, reply_markup=markup)
     except Exception:
         markup = types.InlineKeyboardMarkup()
-        go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+        go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
         markup.row(go_back_button)
 
-        bot.send_message(message.chat.id, 'Произошла ошибка', reply_markup=markup)
+        bot.send_message(message.chat.id, t.buttons['error'], reply_markup=markup)
 
 
 def rm_link(message):
@@ -532,13 +572,13 @@ def rm_link(message):
 
         if message.text.lower() in ('стоп', 'stop'):
             markup = types.InlineKeyboardMarkup()
-            go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+            go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
             markup.row(go_back_button)
 
-            bot.send_message(message.chat.id, 'Вы закончили', reply_markup=markup)
+            bot.send_message(message.chat.id, t.you_finished, reply_markup=markup)
 
         elif message.text.lower() not in links:
-            bot.send_message(message.chat.id, 'Этого элемента нет в списке предложенных')
+            bot.send_message(message.chat.id, t.no_elem_in_list)
 
             bot.register_next_step_handler(message, rm_link)
 
@@ -552,14 +592,14 @@ def rm_link(message):
             cur.close()
             conn.close()
 
-            bot.send_message(message.chat.id, 'Ссылка удалена')
+            bot.send_message(message.chat.id, t.link_deleted)
             bot.register_next_step_handler(message, rm_link)
     except Exception:
         markup = types.InlineKeyboardMarkup()
-        go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+        go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
         markup.row(go_back_button)
 
-        bot.send_message(message.chat.id, 'Произошла ошибка', reply_markup=markup)
+        bot.send_message(message.chat.id, t.buttons['error'], reply_markup=markup)
 
 
 def rm_elements(message):
@@ -577,13 +617,13 @@ def rm_elements(message):
         if len(wishlist) > 0:
             if message.text.lower() in ('стоп', 'stop'):
                 markup = types.InlineKeyboardMarkup()
-                go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+                go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
                 markup.row(go_back_button)
 
-                bot.send_message(message.chat.id, 'Вы закончили', reply_markup=markup)
+                bot.send_message(message.chat.id, t.you_finished, reply_markup=markup)
 
             elif message.text.lower() not in wishlist:
-                bot.send_message(message.chat.id, 'Этого элемента нет в списке, попробуйте другой')
+                bot.send_message(message.chat.id, t.no_elem_in_list)
 
                 bot.register_next_step_handler(message, rm_elements)
 
@@ -597,20 +637,20 @@ def rm_elements(message):
                 cur.close()
                 conn.close()
 
-                bot.send_message(message.chat.id, 'Элемент удален')
+                bot.send_message(message.chat.id, t.elem_deleted)
                 bot.register_next_step_handler(message, rm_elements)
 
         else:
             markup = types.InlineKeyboardMarkup()
-            go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+            go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
             markup.row(go_back_button)
-            bot.send_message(message.chat.id, 'Список пуст', reply_markup=markup)
+            bot.send_message(message.chat.id, t.empty_list, reply_markup=markup)
     except Exception:
         markup = types.InlineKeyboardMarkup()
-        go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+        go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
         markup.row(go_back_button)
 
-        bot.send_message(message.chat.id, 'Произошла ошибка', reply_markup=markup)
+        bot.send_message(message.chat.id, t.buttons['error'], reply_markup=markup)
 
 
 def get_wishlist(message):
@@ -626,13 +666,11 @@ def get_wishlist(message):
 
         if message.text not in usernames:
             markup = types.InlineKeyboardMarkup()
-            yes_button = types.InlineKeyboardButton('Да', callback_data='yes')
-            no_button = types.InlineKeyboardButton('Нет', callback_data='no')
+            yes_button = types.InlineKeyboardButton(t.buttons['yes'], callback_data='yes')
+            no_button = types.InlineKeyboardButton(t.buttons['no'], callback_data='no')
             markup.row(yes_button, no_button)
 
-            bot.send_message(message.chat.id, 'Имя пользователя не найдено, хотите попробовать еще раз?',
-                             reply_markup=markup)
-
+            bot.send_message(message.chat.id, t.username_not_found, reply_markup=markup)
         else:
             conn = sqlite3.connect('data.sqlite3')
             cur = conn.cursor()
@@ -652,7 +690,7 @@ def get_wishlist(message):
                         wishlist.append(it[0])
 
                     if len(wishlist) > 0:
-                        mess = 'Вот список пользователя ' + \
+                        mess = t.print_users_list + \
                                cur.execute(sql.catching_name % message.text).fetchall()[0][0] + '\n\n'
 
                         for item in wishlist:
@@ -664,21 +702,21 @@ def get_wishlist(message):
                         conn.close()
 
                         markup = types.InlineKeyboardMarkup()
-                        go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+                        go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
                         markup.row(go_back_button)
                         bot.send_message(message.chat.id, mess, parse_mode='html', reply_markup=markup)
 
                     else:
                         markup = types.InlineKeyboardMarkup()
-                        go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+                        go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
                         markup.row(go_back_button)
-                        bot.send_message(message.chat.id, 'Список вашего друга пуст', reply_markup=markup)
+                        bot.send_message(message.chat.id, t.friends_list_empty, reply_markup=markup)
 
                 except sqlite3.OperationalError:
                     markup = types.InlineKeyboardMarkup()
-                    go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+                    go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
                     markup.row(go_back_button)
-                    bot.send_message(message.chat.id, 'Пользователь еще не создал список', reply_markup=markup)
+                    bot.send_message(message.chat.id, t.user_didnt_created_list, reply_markup=markup)
 
             elif private_flag == 1:
                 conn = sqlite3.connect('data.sqlite3')
@@ -693,10 +731,10 @@ def get_wishlist(message):
                 bot.register_next_step_handler(message, check_pass, password, message.text)
     except Exception:
         markup = types.InlineKeyboardMarkup()
-        go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+        go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
         markup.row(go_back_button)
 
-        bot.send_message(message.chat.id, 'Произошла ошибка', reply_markup=markup)
+        bot.send_message(message.chat.id, t.buttons['error'], reply_markup=markup)
 
 
 def check_pass(message, password, username):
@@ -711,7 +749,7 @@ def check_pass(message, password, username):
                     wishlist.append(it[0])
 
                 if len(wishlist) > 0:
-                    mess = 'Вот список пользователя ' + \
+                    mess = t.print_users_list + \
                            cur.execute(sql.catching_name % username).fetchall()[0][0] + '\n\n'
 
                     for item in wishlist:
@@ -722,37 +760,36 @@ def check_pass(message, password, username):
                     conn.close()
 
                     markup = types.InlineKeyboardMarkup()
-                    go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+                    go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
                     markup.row(go_back_button)
                     bot.send_message(message.chat.id, mess, parse_mode='html', reply_markup=markup)
 
                 else:
                     markup = types.InlineKeyboardMarkup()
-                    go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+                    go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
                     markup.row(go_back_button)
 
-                    bot.send_message(message.chat.id, 'Список вашего друга пуст', reply_markup=markup)
+                    bot.send_message(message.chat.id, t.friends_list_empty, reply_markup=markup)
 
             except sqlite3.OperationalError:
                 markup = types.InlineKeyboardMarkup()
-                go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+                go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
                 markup.row(go_back_button)
 
-                bot.send_message(message.chat.id, 'Пользователь еще не создал список', reply_markup=markup)
+                bot.send_message(message.chat.id, t.user_didnt_created_list, reply_markup=markup)
 
         else:
             markup = types.InlineKeyboardMarkup()
             yes_button = types.InlineKeyboardButton('Да', callback_data='yes2')
             no_button = types.InlineKeyboardButton('Нет', callback_data='no2')
             markup.row(yes_button, no_button)
-            bot.send_message(message.chat.id, 'Пароль неверный или пользователь еще не создал его,'
-                                              ' хотите попробовать снова?', reply_markup=markup)
+            bot.send_message(message.chat.id, t.incorrect_pass, reply_markup=markup)
     except Exception:
         markup = types.InlineKeyboardMarkup()
-        go_back_button = types.InlineKeyboardButton('Вернуться в начало', callback_data='start')
+        go_back_button = types.InlineKeyboardButton(t.buttons['go_to_the_start'], callback_data='start')
         markup.row(go_back_button)
 
-        bot.send_message(message.chat.id, 'Произошла ошибка', reply_markup=markup)
+        bot.send_message(message.chat.id, t.buttons['error'], reply_markup=markup)
 
 
 bot.polling(none_stop=True)
