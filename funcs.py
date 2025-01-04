@@ -57,7 +57,7 @@ def sql_without_commit(request):
     return result
 
 
-def print_list(bot, message, request, insert_text, init_list, insert_item):
+def print_list(bot, message, request, insert_text, init_list, insert_item, mode, observer):
     mess = ''
 
     conn = sqlite3.connect('data.sqlite3')
@@ -65,31 +65,18 @@ def print_list(bot, message, request, insert_text, init_list, insert_item):
     number = 1
 
     for item in init_list:
-        mess += str(number) + ". <a href='" + cur.execute(request % (insert_item, item)).fetchall()[0][0] \
-                + "'>" + item.capitalize() + "</a>" + '\n'
-        number += 1
+        if observer == 0:
+            mess += str(number) + ". <a href='" + cur.execute(request % (insert_item, item)).fetchall()[0][0] \
+                    + "'>" + item.capitalize() + "</a>" + '\n'
+            number += 1
 
     cur.close()
     conn.close()
 
-    bot.send_message(message.chat.id, insert_text % mess, parse_mode='html')
+    if mode == 0:
+        bot.send_message(message.chat.id, insert_text % mess, parse_mode='html')
 
+    elif mode == 1:
+        result = insert_text % mess
 
-def return_list(request, insert_text, init_list, insert_item):
-    mess = ''
-
-    conn = sqlite3.connect('data.sqlite3')
-    cur = conn.cursor()
-    number = 1
-
-    for item in init_list:
-        mess += str(number) + ". <a href='" + cur.execute(request % (insert_item, item)).fetchall()[0][0] \
-                + "'>" + item.capitalize() + "</a>" + '\n'
-        number += 1
-
-    cur.close()
-    conn.close()
-
-    result = insert_text % mess
-
-    return result
+        return result

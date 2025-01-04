@@ -48,7 +48,7 @@ def callbacks(callback):
             cur.execute(sql.checking_if_in_table)
             usernames = [item[0] for item in cur.fetchall()]
 
-            if callback.message.chat.username not in usernames:
+            if callback.message.chat.username.lower() not in usernames:
                 cur.execute(sql.insert_name_secondname_telegramid %
                             (callback.message.chat.first_name, callback.message.chat.last_name,
                              callback.message.chat.username.lower()))
@@ -76,7 +76,8 @@ def callbacks(callback):
         if callback.data == 'make_list':
             bot.clear_step_handler_by_chat_id(callback.message.chat.id)
 
-            private_exists = f.sql_without_commit(sql.checking_if_private_exists % callback.message.chat.username)
+            private_exists = f.sql_without_commit(
+                sql.checking_if_private_exists % callback.message.chat.username.lower())
 
             if private_exists[0][0] not in (0, 1):
                 markup = types.InlineKeyboardMarkup()
@@ -117,12 +118,13 @@ def callbacks(callback):
         if callback.data == 'print_pass':
             bot.clear_step_handler_by_chat_id(callback.message.chat.id)
 
-            password = f.sql_without_commit(sql.select_pass % callback.message.chat.username)[0][0]
-            private_exists = f.sql_without_commit(sql.checking_if_private_exists % callback.message.chat.username)
+            password = f.sql_without_commit(sql.select_pass % callback.message.chat.username.lower())[0][0]
+            private_exists = f.sql_without_commit(
+                sql.checking_if_private_exists % callback.message.chat.username.lower())
 
             if private_exists[0][0] == 1:
                 f.go_to_the_start(bot, callback.message, t.password['get_pass'] %
-                              (callback.message.chat.username, password))
+                                  (callback.message.chat.username.lower(), password))
 
             else:
                 f.go_to_the_start(bot, callback.message, t.info['cant_use'])
@@ -130,7 +132,8 @@ def callbacks(callback):
         if callback.data == 'change_password':
             bot.clear_step_handler_by_chat_id(callback.message.chat.id)
 
-            private_exists = f.sql_without_commit(sql.checking_if_private_exists % callback.message.chat.username)
+            private_exists = f.sql_without_commit(
+                sql.checking_if_private_exists % callback.message.chat.username.lower())
 
             if private_exists[0][0] == 1:
                 bot.send_message(callback.message.chat.id, t.password['change_pass'])
@@ -152,7 +155,7 @@ def callbacks(callback):
         if callback.data == 'change_private':
             bot.clear_step_handler_by_chat_id(callback.message.chat.id)
 
-            f.sql_with_commit(sql.private_insert % callback.message.chat.username)
+            f.sql_with_commit(sql.private_insert % callback.message.chat.username.lower())
 
             bot.send_message(callback.message.chat.id, t.access['to_private'])
             bot.register_next_step_handler(callback.message, final_password_creating)
@@ -160,18 +163,18 @@ def callbacks(callback):
         if callback.data == 'change_public':
             bot.clear_step_handler_by_chat_id(callback.message.chat.id)
 
-            f.sql_with_commit(sql.non_private_insert % callback.message.chat.username)
+            f.sql_with_commit(sql.non_private_insert % callback.message.chat.username.lower())
 
             f.go_to_the_start(bot, callback.message, t.access['to_public'])
 
         if callback.data == 'unhang_link':
             bot.clear_step_handler_by_chat_id(callback.message.chat.id)
 
-            links = f.form_list(sql.select_links % callback.message.chat.username)
+            links = f.form_list(sql.select_links % callback.message.chat.username.lower())
 
             if len(links) > 0:
                 f.print_list(bot, callback.message, sql.catching_link,
-                             t.link['start_remove'], links, callback.message.chat.username)
+                             t.link['start_remove'], links, callback.message.chat.username.lower(), 0, 0)
 
                 bot.register_next_step_handler(callback.message, rm_link)
 
@@ -181,11 +184,11 @@ def callbacks(callback):
         if callback.data == 'delete_elems':
             bot.clear_step_handler_by_chat_id(callback.message.chat.id)
 
-            wishlist = f.form_list(sql.checking_if_in_wishlist % callback.message.chat.username)
+            wishlist = f.form_list(sql.checking_if_in_wishlist % callback.message.chat.username.lower())
 
             if len(wishlist) > 0:
                 f.print_list(bot, callback.message, sql.catching_link,
-                             t.elements['start_delete'], wishlist, callback.message.chat.username)
+                             t.elements['start_delete'], wishlist, callback.message.chat.username.lower(), 0, 0)
 
                 bot.register_next_step_handler(callback.message, rm_elements)
 
@@ -195,11 +198,12 @@ def callbacks(callback):
         if callback.data == 'get_list':
             bot.clear_step_handler_by_chat_id(callback.message.chat.id)
 
-            wishlist = f.form_list(sql.checking_if_in_wishlist % callback.message.chat.username)
+            wishlist = f.form_list(sql.checking_if_in_wishlist % callback.message.chat.username.lower())
 
             if len(wishlist) > 0:
-                f.go_to_the_start(bot, callback.message, f.return_list(sql.catching_link,
-                            t.info['get_list'], wishlist, callback.message.chat.username))
+                f.go_to_the_start(bot, callback.message, f.print_list(bot, callback.message, sql.catching_link,
+                                                                      t.info['get_list'], wishlist,
+                                                                      callback.message.chat.username.lower(), 1, 0))
 
             else:
                 f.go_to_the_start(bot, callback.message, t.elements['no_elems'])
@@ -207,11 +211,11 @@ def callbacks(callback):
         if callback.data == 'hang_link':
             bot.clear_step_handler_by_chat_id(callback.message.chat.id)
 
-            wishlist = f.form_list(sql.checking_if_in_wishlist % callback.message.chat.username)
+            wishlist = f.form_list(sql.checking_if_in_wishlist % callback.message.chat.username.lower())
 
             if len(wishlist) > 0:
                 f.print_list(bot, callback.message, sql.catching_link,
-                             t.link['start_hang'], wishlist, callback.message.chat.username)
+                             t.link['start_hang'], wishlist, callback.message.chat.username.lower(), 0, 0)
 
                 bot.register_next_step_handler(callback.message, choosing_elem, wishlist)
 
@@ -233,7 +237,7 @@ def callbacks(callback):
         if callback.data == 'make_private':
             bot.clear_step_handler_by_chat_id(callback.message.chat.id)
 
-            f.sql_with_commit(sql.private_insert % callback.message.chat.username)
+            f.sql_with_commit(sql.private_insert % callback.message.chat.username.lower())
 
             markup = types.InlineKeyboardMarkup()
             create_password_button = types.InlineKeyboardButton(t.buttons['create_password'],
@@ -244,7 +248,7 @@ def callbacks(callback):
         if callback.data == 'make_opened':
             bot.clear_step_handler_by_chat_id(callback.message.chat.id)
 
-            f.sql_with_commit(sql.non_private_insert % callback.message.chat.username)
+            f.sql_with_commit(sql.non_private_insert % callback.message.chat.username.lower())
 
             markup = types.InlineKeyboardMarkup()
             create_wishlist_button = types.InlineKeyboardButton(t.buttons['create_list'],
@@ -263,7 +267,7 @@ def callbacks(callback):
 
             bot.send_message(callback.message.chat.id, t.elements['add_elements'])
 
-            f.sql_with_commit(sql.init_wishlist % callback.message.chat.username)
+            f.sql_with_commit(sql.init_wishlist % callback.message.chat.username.lower())
 
             bot.register_next_step_handler(callback.message, wishlist_creating)
 
@@ -277,8 +281,8 @@ def callbacks(callback):
             bot.clear_step_handler_by_chat_id(callback.message.chat.id)
 
             bot.delete_messages(callback.message.chat.id,
-                            [callback.message.message_id,
-                             callback.message.message_id - 1, callback.message.message_id - 2])
+                                [callback.message.message_id,
+                                 callback.message.message_id - 1, callback.message.message_id - 2])
 
         if callback.data == 'yes2':
             bot.clear_step_handler_by_chat_id(callback.message.chat.id)
@@ -317,7 +321,7 @@ def choosing_elem(message, wishlist):
 def link_hanger(message, elem):
     try:
         if message.content_type == 'text':
-            f.sql_with_commit(sql.adding_link % (message.chat.username, message.text, elem))
+            f.sql_with_commit(sql.adding_link % (message.chat.username.lower(), message.text, elem))
             f.go_to_the_start(bot, message, t.info['ready'])
 
         else:
@@ -337,7 +341,7 @@ def password_creating(message):
                     flag = False
 
             if flag and len(message.text) == 9 and message.text[4] == '-' and message.text.count('-') == 1:
-                f.sql_with_commit(sql.password_insert % (message.text, message.chat.username))
+                f.sql_with_commit(sql.password_insert % (message.text, message.chat.username.lower()))
 
                 markup = types.InlineKeyboardMarkup()
                 create_wishlist_button = types.InlineKeyboardButton(t.buttons['create_list'],
@@ -367,7 +371,7 @@ def final_password_creating(message):
                     flag = False
 
             if flag and len(message.text) == 9 and message.text[4] == '-' and message.text.count('-') == 1:
-                f.sql_with_commit(sql.password_insert % (message.text, message.chat.username))
+                f.sql_with_commit(sql.password_insert % (message.text, message.chat.username.lower()))
                 f.go_to_the_start(bot, message, t.password['final_pass_creating'])
 
             else:
@@ -385,7 +389,7 @@ def final_password_creating(message):
 def wishlist_creating(message):
     try:
         if message.content_type == 'text':
-            wishlist = f.form_list(sql.checking_if_in_wishlist % message.chat.username)
+            wishlist = f.form_list(sql.checking_if_in_wishlist % message.chat.username.lower())
 
             if message.text.lower() in wishlist:
                 bot.send_message(message.chat.id, t.elements['exists'])
@@ -393,7 +397,7 @@ def wishlist_creating(message):
                 bot.register_next_step_handler(message, wishlist_creating)
 
             elif message.text.lower() not in ('стоп', 'stop'):
-                f.sql_with_commit(sql.wishlist_item_insert % (message.chat.username, message.text.lower()))
+                f.sql_with_commit(sql.wishlist_item_insert % (message.chat.username.lower(), message.text.lower()))
 
                 bot.send_message(message.chat.id, t.elements['added'])
                 bot.register_next_step_handler(message, wishlist_creating)
@@ -412,7 +416,7 @@ def wishlist_creating(message):
 def rm_link(message):
     try:
         if message.content_type == 'text':
-            links = f.form_list(sql.select_links % message.chat.username)
+            links = f.form_list(sql.select_links % message.chat.username.lower())
 
             if message.text.lower() in ('стоп', 'stop'):
                 f.go_to_the_start(bot, message, t.info['ready'])
@@ -423,7 +427,7 @@ def rm_link(message):
                 bot.register_next_step_handler(message, rm_link)
 
             elif message.text.lower() not in ('стоп', 'stop'):
-                f.sql_with_commit(sql.delete_links % (message.chat.username, message.text.lower()))
+                f.sql_with_commit(sql.delete_links % (message.chat.username.lower(), message.text.lower()))
 
                 bot.send_message(message.chat.id, t.link['deleted'])
                 bot.register_next_step_handler(message, rm_link)
@@ -439,7 +443,7 @@ def rm_link(message):
 def rm_elements(message):
     try:
         if message.content_type == 'text':
-            wishlist = f.form_list(sql.checking_if_in_wishlist % message.chat.username)
+            wishlist = f.form_list(sql.checking_if_in_wishlist % message.chat.username.lower())
 
             if len(wishlist) > 0:
                 if message.text.lower() not in wishlist:
@@ -451,7 +455,7 @@ def rm_elements(message):
                     f.go_to_the_start(bot, message, t.info['ready'])
 
                 elif message.text.lower() not in ('стоп', 'stop'):
-                    f.sql_with_commit(sql.delete_elements % (message.chat.username, message.text.lower()))
+                    f.sql_with_commit(sql.delete_elements % (message.chat.username.lower(), message.text.lower()))
 
                     bot.send_message(message.chat.id, t.elements['deleted'])
                     bot.register_next_step_handler(message, rm_elements)
@@ -472,7 +476,7 @@ def get_wishlist(message):
         usernames = f.form_list(sql.checking_if_in_table)
 
         if message.content_type == 'text':
-            if message.text not in usernames:
+            if message.text.lower() not in usernames:
                 markup = types.InlineKeyboardMarkup()
                 yes_button = types.InlineKeyboardButton(t.buttons['yes'], callback_data='yes')
                 no_button = types.InlineKeyboardButton(t.buttons['no'], callback_data='no')
@@ -480,15 +484,16 @@ def get_wishlist(message):
 
                 bot.send_message(message.chat.id, t.info['no_username'], reply_markup=markup)
             else:
-                private_flag = f.sql_without_commit(sql.checking_if_private % message.text)[0][0]
+                private_flag = f.sql_without_commit(sql.checking_if_private % message.text.lower())[0][0]
 
                 if private_flag == 0:
                     try:
-                        wishlist = f.form_list(sql.checking_if_in_wishlist % message.text)
+                        wishlist = f.form_list(sql.checking_if_in_wishlist % message.text.lower())
 
                         if len(wishlist) > 0:
-                            f.go_to_the_start(bot, message, f.return_list(sql.catching_link,
-                                                            t.elements['friends_hat'], wishlist, message.text))
+                            f.go_to_the_start(bot, message, f.print_list(bot, message, sql.catching_link,
+                                                                         t.elements['friends_hat'], wishlist,
+                                                                         message.text, 1, 0))
 
                         else:
                             f.go_to_the_start(bot, message, t.elements['empty_fr_list'])
@@ -497,10 +502,10 @@ def get_wishlist(message):
                         f.go_to_the_start(bot, message, t.info['didnt_create'])
 
                 elif private_flag == 1:
-                    password = f.sql_without_commit(sql.catching_password % message.text)[0][0]
+                    password = f.sql_without_commit(sql.catching_password % message.text.lower())[0][0]
 
                     bot.send_message(message.chat.id, t.access['is_private'] % message.text)
-                    bot.register_next_step_handler(message, check_pass, password, message.text)
+                    bot.register_next_step_handler(message, check_pass, password, message.text.lower())
 
         elif message.content_type != 'text':
             bot.send_message(message.chat.id, t.info['not_a_command'])
@@ -518,8 +523,9 @@ def check_pass(message, password, username):
                     wishlist = f.form_list(sql.checking_if_in_wishlist % username)
 
                     if len(wishlist) > 0:
-                        f.go_to_the_start(bot, message, f.return_list(sql.catching_link,
-                                                        t.elements['friends_hat'], wishlist, username))
+                        f.go_to_the_start(bot, message, f.print_list(bot, message, sql.catching_link,
+                                                                     t.elements['friends_hat'],
+                                                                     wishlist, username, 1, 0))
 
                     else:
                         f.go_to_the_start(bot, message, t.elements['empty_fr_list'])
