@@ -1,4 +1,6 @@
 from telebot import types
+
+import sql
 import text as t
 import sqlite3
 
@@ -70,6 +72,17 @@ def print_list(bot, message, request, insert_text, init_list, insert_item, mode,
                     + "'>" + item.capitalize() + "</a>" + '\n'
             number += 1
 
+        elif observer == 1:
+            pres_flag = sql_without_commit(sql.prepare_crossing % (insert_item, item))[0][0]
+            if pres_flag == 1:
+                mess += str(number) + ". <s><a href='" + cur.execute(request % (insert_item, item)).fetchall()[0][0] \
+                        + "'>" + item.capitalize() + "</a></s>" + '\n'
+                number += 1
+            else:
+                mess += str(number) + ". <a href='" + cur.execute(request % (insert_item, item)).fetchall()[0][0] \
+                        + "'>" + item.capitalize() + "</a>" + '\n'
+                number += 1
+
     cur.close()
     conn.close()
 
@@ -80,3 +93,20 @@ def print_list(bot, message, request, insert_text, init_list, insert_item, mode,
         result = insert_text % mess
 
         return result
+
+
+def form_buttons(bot, message, init_list, text, mode):
+    markup = types.ReplyKeyboardMarkup()
+
+    for item in init_list:
+        mid_button = types.KeyboardButton(item.capitalize())
+        markup.row(mid_button)
+
+    finish_button = types.KeyboardButton(t.buttons['do_nothing'])
+    markup.row(finish_button)
+
+    if mode == 1:
+        stop_button = types.KeyboardButton('Стоп')
+        markup.row(stop_button)
+
+    bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode='html')

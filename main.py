@@ -476,36 +476,44 @@ def get_wishlist(message):
         usernames = f.form_list(sql.checking_if_in_table)
 
         if message.content_type == 'text':
-            if message.text.lower() not in usernames:
-                markup = types.InlineKeyboardMarkup()
-                yes_button = types.InlineKeyboardButton(t.buttons['yes'], callback_data='yes')
-                no_button = types.InlineKeyboardButton(t.buttons['no'], callback_data='no')
-                markup.row(yes_button, no_button)
+            if message.chat.username.lower() != message.text.lower():
+                if message.text.lower() not in usernames:
+                    markup = types.InlineKeyboardMarkup()
+                    yes_button = types.InlineKeyboardButton(t.buttons['yes'], callback_data='yes')
+                    no_button = types.InlineKeyboardButton(t.buttons['no'], callback_data='no')
+                    markup.row(yes_button, no_button)
 
-                bot.send_message(message.chat.id, t.info['no_username'], reply_markup=markup)
+                    bot.send_message(message.chat.id, t.info['no_username'], reply_markup=markup)
+                else:
+                    private_flag = f.sql_without_commit(sql.checking_if_private % message.text.lower())[0][0]
+
+                    if private_flag == 0:
+                        try:
+                            wishlist = f.form_list(sql.checking_if_in_wishlist % message.text.lower())
+                            but_els = f.form_list(sql.select_not_crossed % message.text.lower())
+
+                            if len(wishlist) > 0:
+                                f.form_buttons(bot, message, but_els, f.print_list(bot, message, sql.catching_link,
+                                                                                   t.elements['friends_hat'], wishlist,
+                                                                                   message.chat.username.lower(), 1,
+                                                                                   1), 0)
+
+                                bot.register_next_step_handler(message, elem_crosser, message.text.lower())
+
+                            else:
+                                f.go_to_the_start(bot, message, t.elements['empty_fr_list'])
+
+                        except sqlite3.OperationalError:
+                            f.go_to_the_start(bot, message, t.info['didnt_create'])
+
+                    elif private_flag == 1:
+                        password = f.sql_without_commit(sql.catching_password % message.text.lower())[0][0]
+
+                        bot.send_message(message.chat.id, t.access['is_private'] % message.text)
+                        bot.register_next_step_handler(message, check_pass, password, message.text.lower())
+
             else:
-                private_flag = f.sql_without_commit(sql.checking_if_private % message.text.lower())[0][0]
-
-                if private_flag == 0:
-                    try:
-                        wishlist = f.form_list(sql.checking_if_in_wishlist % message.text.lower())
-
-                        if len(wishlist) > 0:
-                            f.go_to_the_start(bot, message, f.print_list(bot, message, sql.catching_link,
-                                                                         t.elements['friends_hat'], wishlist,
-                                                                         message.text, 1, 0))
-
-                        else:
-                            f.go_to_the_start(bot, message, t.elements['empty_fr_list'])
-
-                    except sqlite3.OperationalError:
-                        f.go_to_the_start(bot, message, t.info['didnt_create'])
-
-                elif private_flag == 1:
-                    password = f.sql_without_commit(sql.catching_password % message.text.lower())[0][0]
-
-                    bot.send_message(message.chat.id, t.access['is_private'] % message.text)
-                    bot.register_next_step_handler(message, check_pass, password, message.text.lower())
+                f.go_to_the_start(bot, message, t.info['incorrect_mode'])
 
         elif message.content_type != 'text':
             bot.send_message(message.chat.id, t.info['not_a_command'])
@@ -521,11 +529,15 @@ def check_pass(message, password, username):
             if message.text == password:
                 try:
                     wishlist = f.form_list(sql.checking_if_in_wishlist % username)
+                    but_els = f.form_list(sql.select_not_crossed % username)
 
                     if len(wishlist) > 0:
-                        f.go_to_the_start(bot, message, f.print_list(bot, message, sql.catching_link,
-                                                                     t.elements['friends_hat'],
-                                                                     wishlist, username, 1, 0))
+                        f.form_buttons(bot, message, but_els, f.print_list(bot, message, sql.catching_link,
+                                                                           t.elements['friends_hat'], wishlist,
+                                                                           message.chat.username.lower(), 1,
+                                                                           1), 0)
+
+                        bot.register_next_step_handler(message, elem_crosser, username)
 
                     else:
                         f.go_to_the_start(bot, message, t.elements['empty_fr_list'])
@@ -546,6 +558,21 @@ def check_pass(message, password, username):
 
     except Exception:
         f.exceptions(bot, message)
+
+
+def elem_crosser(message, username):
+    if message.content_type == 'text':
+        if message.text != t.buttons['do_nothing']:
+            f.sql_with_commit(sql.gets_presented % (username, message.text.lower()))
+            bot.send_message(message.chat.id, t.info['great_choice'], reply_markup=types.ReplyKeyboardRemove())
+            f.go_to_the_start(bot, message, t.info['ready'])
+        else:
+            bot.send_message(message.chat.id, t.info['great_choice'], reply_markup=types.ReplyKeyboardRemove())
+            f.go_to_the_start(bot, message, t.info['ready'])
+
+    elif message.content_type != 'text':
+        bot.send_message(message.chat.id, t.info['not_a_command'])
+        bot.register_next_step_handler(message, check_pass)
 
 
 bot.polling(none_stop=True)
