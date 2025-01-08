@@ -95,18 +95,14 @@ def print_list(bot, message, request, insert_text, init_list, insert_item, mode,
         return result
 
 
-def form_buttons(bot, message, init_list, text, mode):
+def form_buttons(bot, message, init_list, text):
     markup = types.ReplyKeyboardMarkup()
 
     for item in init_list:
         mid_button = types.KeyboardButton(item.capitalize())
         markup.row(mid_button)
 
-    finish_button = types.KeyboardButton(t.buttons['do_nothing'])
+    finish_button = types.KeyboardButton(t.buttons['exit'])
     markup.row(finish_button)
-
-    if mode == 1:
-        stop_button = types.KeyboardButton('Стоп')
-        markup.row(stop_button)
 
     bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode='html')
