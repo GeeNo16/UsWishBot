@@ -218,8 +218,8 @@ def callbacks(callback):
             wishlist = f.form_list(sql.checking_if_in_wishlist % callback.message.chat.username.lower())
 
             if len(wishlist) > 0:
-                f.print_list(bot, callback.message, sql.catching_link,
-                             t.link['start_hang'], wishlist, callback.message.chat.username.lower(), 0, 0)
+                f.form_buttons(bot, callback.message, wishlist, f.print_list(bot, callback.message, sql.catching_link,
+                             t.link['start_hang'], wishlist, callback.message.chat.username.lower(), 1, 0))
 
                 bot.register_next_step_handler(callback.message, choosing_elem, wishlist)
 
@@ -306,13 +306,18 @@ def callbacks(callback):
 def choosing_elem(message, wishlist):
     try:
         if message.content_type == 'text':
-            if message.text.lower() in wishlist:
-                bot.send_message(message.chat.id, t.elements['chosen_elem'] % message.text.lower().capitalize())
-                bot.register_next_step_handler(message, link_hanger, message.text.lower())
+            if message.text == t.buttons['exit']:
+                bot.send_message(message.chat.id, t.info['great_choice'], reply_markup=types.ReplyKeyboardRemove())
+                f.go_to_the_start(bot, message, t.info['ready'])
 
             else:
-                bot.send_message(message.chat.id, t.elements['no_elem_links'])
-                bot.register_next_step_handler(message, choosing_elem, wishlist)
+                if message.text.lower() in wishlist:
+                    bot.send_message(message.chat.id, t.elements['chosen_elem'] % message.text.lower().capitalize())
+                    bot.register_next_step_handler(message, link_hanger, message.text.lower())
+
+                else:
+                    bot.send_message(message.chat.id, t.elements['no_elem_links'])
+                    bot.register_next_step_handler(message, choosing_elem, wishlist)
 
         elif message.content_type != 'text':
             bot.send_message(message.chat.id, t.info['not_a_command'])
@@ -325,8 +330,13 @@ def choosing_elem(message, wishlist):
 def link_hanger(message, elem):
     try:
         if message.content_type == 'text':
-            f.sql_with_commit(sql.adding_link % (message.chat.username.lower(), message.text, elem))
-            f.go_to_the_start(bot, message, t.info['ready'])
+            if '//' in message.text:
+                f.sql_with_commit(sql.adding_link % (message.chat.username.lower(), message.text, elem))
+                bot.send_message(message.chat.id, t.info['great_choice'], reply_markup=types.ReplyKeyboardRemove())
+                f.go_to_the_start(bot, message, t.info['ready'])
+            else:
+                bot.send_message(message.chat.id, t.info['not_a_link'])
+                bot.register_next_step_handler(message, link_hanger, elem)
 
         else:
             bot.send_message(message.chat.id, t.info['not_a_command'])
