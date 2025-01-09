@@ -95,20 +95,22 @@ def callbacks(callback):
                 delete_elems = types.InlineKeyboardButton(t.buttons['delete_elems'], callback_data='delete_elems')
                 hang_link_button = types.InlineKeyboardButton(t.buttons['hang_link'], callback_data='hang_link')
                 unhang_link_button = types.InlineKeyboardButton(t.buttons['unhang_link'], callback_data='unhang_link')
-                change_private_button = types.InlineKeyboardButton(t.buttons['change_access'],
-                                                                   callback_data='change_access')
                 change_password_button = types.InlineKeyboardButton(t.buttons['change_password'],
                                                                     callback_data='change_password')
                 get_list_button = types.InlineKeyboardButton(t.buttons['get_list'], callback_data='get_list')
                 check_pass_button = types.InlineKeyboardButton(t.buttons['print_pass'], callback_data='print_pass')
 
                 if private_exists[0][0] == 0:
+                    change_private_button = types.InlineKeyboardButton(t.buttons['change_access'],
+                                                                       callback_data='change_private')
                     markup.row(add_elements, delete_elems)
                     markup.row(hang_link_button, unhang_link_button)
                     markup.row(change_private_button)
                     markup.row(get_list_button)
 
                 else:
+                    change_private_button = types.InlineKeyboardButton(t.buttons['change_access'],
+                                                                       callback_data='change_public')
                     markup.row(add_elements, delete_elems)
                     markup.row(hang_link_button, unhang_link_button)
                     markup.row(change_private_button, change_password_button)
@@ -143,16 +145,6 @@ def callbacks(callback):
 
             else:
                 f.go_to_the_start(bot, callback.message, t.info['cant_use'])
-
-        if callback.data == 'change_access':
-            bot.clear_step_handler_by_chat_id(callback.message.chat.id)
-
-            markup = types.InlineKeyboardMarkup()
-            private_button = types.InlineKeyboardButton(t.buttons['private'], callback_data='change_private')
-            public = types.InlineKeyboardButton(t.buttons['public'], callback_data='change_public')
-            markup.row(private_button, public)
-
-            bot.send_message(callback.message.chat.id, t.access['change_access'], reply_markup=markup)
 
         if callback.data == 'change_private':
             bot.clear_step_handler_by_chat_id(callback.message.chat.id)
@@ -468,6 +460,7 @@ def rm_elements(message):
                     bot.register_next_step_handler(message, rm_elements)
 
             else:
+                bot.send_message(message.chat.id, t.info['great_choice'], reply_markup=types.ReplyKeyboardRemove())
                 f.go_to_the_start(bot, message, t.elements['no_elems'])
 
         elif message.content_type != 'text':
