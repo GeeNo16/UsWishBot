@@ -13,7 +13,7 @@ non_private_insert = "UPDATE users SET private=0 WHERE username='%s'"
 password_insert = "UPDATE users SET pass='%s' WHERE username='%s'"
 
 init_wishlist = "CREATE TABLE IF NOT EXISTS '%s' (id auto_increment primary key, gift varchar, " \
-                "link varchar DEFAULT '', gets_presented boolean DEFAULT 0)"
+                "link varchar DEFAULT '', gets_presented boolean DEFAULT 0, cat int DEFAULT 0)"
 
 wishlist_item_insert = "INSERT INTO '%s' (gift) VALUES ('%s')"
 
@@ -44,3 +44,9 @@ gets_presented = "UPDATE '%s' SET gets_presented=1 WHERE gift='%s'"
 prepare_crossing = "SELECT gets_presented FROM '%s' WHERE gift='%s'"
 
 select_not_crossed = "SELECT gift FROM '%s' WHERE gets_presented<>1"
+
+cat_insert = "UPDATE '%s' SET cat='%s' WHERE gift='%s'"
+
+cat_select = "SELECT cat FROM '%s' WHERE gift='%s'"
+
+gift_select_ct = "SELECT gift FROM '%s' WHERE cat<>'%s'"
