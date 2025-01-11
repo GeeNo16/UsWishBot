@@ -65,46 +65,108 @@ def print_list(bot, message, request, insert_text, init_list, insert_item, mode,
     conn = sqlite3.connect('data.sqlite3')
     cur = conn.cursor()
     number = 1
+    cats = [cur.execute(sql.cat_select % (insert_item, item)).fetchall()[0][0] for item in init_list]
+    working_wishlist = sorted([(cats[i], init_list[i]) for i in range(len(init_list))])
+    count = [i - i for i in range(7)]
 
-    for item in init_list:
+    for item in working_wishlist:
         if observer == 0:
-            if cur.execute(sql.cat_select % (insert_item, item)).fetchall()[0][0] - 1 >= 0:
-                mess += str(number) + ". <a href='" + cur.execute(request % (insert_item, item)).fetchall()[0][0] \
-                        + "'>" + item.capitalize() + "</a> (" + \
-                        t.cats_list[cur.execute(sql.cat_select % (insert_item, item)).fetchall()[0][0] - 1] + ')\n'
-                number += 1
+            if item[0] == 0:
+                if count[0] == 0:
+                    mess += str(number) + '. Без категории' + '\n'
+                    number += 1
+                    count[0] += 1
 
-            else:
-                mess += str(number) + ". <a href='" + cur.execute(request % (insert_item, item)).fetchall()[0][0] \
-                        + "'>" + item.capitalize() + "</a>" + '\n'
-                number += 1
+            elif item[0] == 1:
+                if count[1] == 0:
+                    mess += str(number) + '. ' + t.cats_list[item[0] - 1] + '\n'
+                    number += 1
+                    count[1] += 1
+
+            elif item[0] == 2:
+                if count[2] == 0:
+                    mess += str(number) + '. ' + t.cats_list[item[0] - 1] + '\n'
+                    number += 1
+                    count[2] += 1
+
+            elif item[0] == 3:
+                if count[3] == 0:
+                    mess += str(number) + '. ' + t.cats_list[item[0] - 1] + '\n'
+                    number += 1
+                    count[3] += 1
+
+            elif item[0] == 4:
+                if count[4] == 0:
+                    mess += str(number) + '. ' + t.cats_list[item[0] - 1] + '\n'
+                    number += 1
+                    count[4] += 1
+
+            elif item[0] == 5:
+                if count[5] == 0:
+                    mess += str(number) + '. ' + t.cats_list[item[0] - 1] + '\n'
+                    number += 1
+                    count[5] += 1
+
+            elif item[0] == 6:
+                if count[6] == 0:
+                    mess += str(number) + '. ' + t.cats_list[item[0] - 1] + '\n'
+                    number += 1
+                    count[6] += 1
+
+            mess += "\t\t- <a href='" + cur.execute(request % (insert_item, item[1])).fetchall()[0][0] \
+                    + "'>" + item[1].capitalize() + "</a>" + '\n'
 
         elif observer == 1:
-            pres_flag = sql_without_commit(sql.prepare_crossing % (insert_item, item))[0][0]
-            if pres_flag == 1:
-                if cur.execute(sql.cat_select % (insert_item, item)).fetchall()[0][0] - 1 >= 0:
-                    mess += str(number) + ". <s><a href='" + \
-                            cur.execute(request % (insert_item, item)).fetchall()[0][0] \
-                            + "'>" + item.capitalize() + "</a></s> (" + \
-                            t.cats_list[cur.execute(sql.cat_select % (insert_item, item)).fetchall()[0][0] - 1] + ')\n'
+            pres_flag = sql_without_commit(sql.prepare_crossing % (insert_item, item[1]))[0][0]
+            if item[0] == 0:
+                if count[0] == 0:
+                    mess += str(number) + '. Без категории' + '\n'
                     number += 1
+                    count[0] += 1
 
-                else:
-                    mess += str(number) + ". <a href='" + cur.execute(request % (insert_item, item)).fetchall()[0][0] \
-                            + "'>" + item.capitalize() + "</a>" + '\n'
+            elif item[0] == 1:
+                if count[1] == 0:
+                    mess += str(number) + '. ' + t.cats_list[item[0] - 1] + '\n'
                     number += 1
+                    count[1] += 1
+
+            elif item[0] == 2:
+                if count[2] == 0:
+                    mess += str(number) + '. ' + t.cats_list[item[0] - 1] + '\n'
+                    number += 1
+                    count[2] += 1
+
+            elif item[0] == 3:
+                if count[3] == 0:
+                    mess += str(number) + '. ' + t.cats_list[item[0] - 1] + '\n'
+                    number += 1
+                    count[3] += 1
+
+            elif item[0] == 4:
+                if count[4] == 0:
+                    mess += str(number) + '. ' + t.cats_list[item[0] - 1] + '\n'
+                    number += 1
+                    count[4] += 1
+
+            elif item[0] == 5:
+                if count[5] == 0:
+                    mess += str(number) + '. ' + t.cats_list[item[0] - 1] + '\n'
+                    number += 1
+                    count[5] += 1
+
+            elif item[0] == 6:
+                if count[6] == 0:
+                    mess += str(number) + '. ' + t.cats_list[item[0] - 1] + '\n'
+                    number += 1
+                    count[6] += 1
+
+            if pres_flag == 1:
+                mess += "\t\t- <s><a href='" + cur.execute(request % (insert_item, item[1])).fetchall()[0][0] \
+                        + "'>" + item[1].capitalize() + "</a></s>" + '\n'
 
             else:
-                if cur.execute(sql.cat_select % (insert_item, item)).fetchall()[0][0] - 1 >= 0:
-                    mess += str(number) + ". <a href='" + cur.execute(request % (insert_item, item)).fetchall()[0][0] \
-                            + "'>" + item.capitalize() + "</a> (" + \
-                            t.cats_list[cur.execute(sql.cat_select % (insert_item, item)).fetchall()[0][0] - 1] + ')\n'
-                    number += 1
-
-                else:
-                    mess += str(number) + ". <a href='" + cur.execute(request % (insert_item, item)).fetchall()[0][0] \
-                            + "'>" + item.capitalize() + "</a>" + '\n'
-                    number += 1
+                mess += "\t\t- <a href='" + cur.execute(request % (insert_item, item[1])).fetchall()[0][0] \
+                        + "'>" + item[1].capitalize() + "</a>" + '\n'
 
     cur.close()
     conn.close()

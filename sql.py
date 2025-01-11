@@ -50,3 +50,7 @@ cat_insert = "UPDATE '%s' SET cat='%s' WHERE gift='%s'"
 cat_select = "SELECT cat FROM '%s' WHERE gift='%s'"
 
 gift_select_ct = "SELECT gift FROM '%s' WHERE cat<>'%s'"
+
+gift_select_cat_0 = "SELECT gift FROM '%s' WHERE cat=0"
+
+cat_select_all = "SELECT cat FROM '%s'"

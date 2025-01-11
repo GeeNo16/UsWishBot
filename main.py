@@ -126,7 +126,13 @@ def callbacks(callback):
             bot.clear_step_handler_by_chat_id(callback.message.chat.id)
             wishlist = f.form_list(sql.checking_if_in_wishlist % callback.message.chat.username.lower())
             if len(wishlist) > 0:
-                f.form_buttons(bot, callback.message, t.cats_list, t.cats['start'])
+                f.form_buttons(bot, callback.message, t.cats_list, f.print_list(bot, callback.message,
+                                                                                sql.catching_link,
+                                                                                t.cats['start'],
+                                                                                wishlist,
+                                                                                callback.message.
+                                                                                chat.username.lower(),
+                                                                                1, 0))
                 bot.register_next_step_handler(callback.message, choosing_elem, [], 1)
 
             else:
@@ -377,7 +383,7 @@ def cat_appender(message, cat, wishlist):
 
             else:
                 bot.send_message(message.chat.id, t.info['great_choice'], reply_markup=types.ReplyKeyboardRemove())
-                f.go_to_the_start(bot, message, t.cats['empty_list'])
+                f.go_to_the_start(bot, message, t.cats['empty_list'] % cat)
 
         else:
             bot.send_message(message.chat.id, t.info['not_a_command'])
@@ -467,9 +473,31 @@ def wishlist_creating(message):
                 bot.register_next_step_handler(message, wishlist_creating)
 
             else:
+                flag = False
+                cats = f.form_list(sql.cat_select_all % message.chat.username.lower())
+                for item in cats:
+                    if item != 0:
+                        flag = True
+
                 bot.send_message(message.chat.id, t.info['great_choice'], reply_markup=types.ReplyKeyboardRemove())
-                f.form_buttons(bot, message, t.cats_list, t.info['ready'] + t.cats['start'])
-                bot.register_next_step_handler(message, choosing_elem, [], 1)
+
+                if flag:
+                    markup = types.InlineKeyboardMarkup()
+                    yes_button = types.InlineKeyboardButton(t.buttons['yes'], callback_data='manage_cats')
+                    no_button = types.InlineKeyboardButton(t.buttons['no'], callback_data='make_list')
+                    markup.row(yes_button, no_button)
+                    bot.send_message(message.chat.id, t.cats['after_adding'], reply_markup=markup)
+                    bot.register_next_step_handler(message, choosing_elem, [], 1)
+
+                else:
+                    f.form_buttons(bot, message, t.cats_list, f.print_list(bot, message,
+                                                                           sql.catching_link,
+                                                                           t.cats['start'],
+                                                                           wishlist,
+                                                                           message.
+                                                                           chat.username.lower(),
+                                                                           1, 0))
+                    bot.register_next_step_handler(message, choosing_elem, [], 1)
 
         elif message.content_type != 'text':
             bot.send_message(message.chat.id, t.info['wrong_type'])
