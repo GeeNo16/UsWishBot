@@ -106,9 +106,8 @@ def callbacks(callback):
                                                                        callback_data='change_private')
                     markup.row(add_elements, delete_elems)
                     markup.row(hang_link_button, unhang_link_button)
-                    markup.row(change_private_button)
+                    markup.row(change_private_button, categories_button)
                     markup.row(get_list_button)
-                    markup.row(categories_button)
 
                 else:
                     change_private_button = types.InlineKeyboardButton(t.buttons['change_access'],
@@ -116,9 +115,8 @@ def callbacks(callback):
                     markup.row(add_elements, delete_elems)
                     markup.row(hang_link_button, unhang_link_button)
                     markup.row(change_private_button, change_password_button)
-                    markup.row(check_pass_button)
+                    markup.row(check_pass_button, categories_button)
                     markup.row(get_list_button)
-                    markup.row(categories_button)
 
                 bot.send_message(callback.message.chat.id, t.info['you_have_list'], reply_markup=markup)
 
@@ -401,7 +399,13 @@ def link_hanger(message, elem):
                 bot.register_next_step_handler(message, link_hanger, elem)
 
             elif '//' in message.text:
-                f.sql_with_commit(sql.adding_link % (message.chat.username.lower(), message.text, elem))
+                index = 0
+                for i in range(len(message.text)):
+                    if message.text[i] == ':' and message.text[i + 1] == '/':
+                        index = i
+
+                link = message.text[(index - 5):]
+                f.sql_with_commit(sql.adding_link % (message.chat.username.lower(), link, elem))
                 bot.send_message(message.chat.id, t.info['great_choice'], reply_markup=types.ReplyKeyboardRemove())
                 f.go_to_the_start(bot, message, t.info['ready'])
 
